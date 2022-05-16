@@ -1,42 +1,49 @@
 import React from 'react';
 import {
-  ChakraProvider,
-  Box,
-  Text,
-  Link,
-  VStack,
-  Code,
-  Grid,
-  theme,
+  Input,
+  Container,
+  Button,
+  Tooltip,
+  useDisclosure,
+  Textarea,
+  InputGroup,
 } from '@chakra-ui/react';
-import { ColorModeSwitcher } from './ColorModeSwitcher';
-import { Logo } from './Logo';
+import { FcAddressBook } from 'react-icons/fc';
+import ContactModal from './ContactModal';
+export default function App({ userId }) {
+  const [content, setContent] = React.useState('');
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
-function App() {
   return (
-    <ChakraProvider theme={theme}>
-      <Box textAlign="center" fontSize="xl">
-        <Grid minH="100vh" p={3}>
-          <ColorModeSwitcher justifySelf="flex-end" />
-          <VStack spacing={8}>
-            <Logo h="40vmin" pointerEvents="none" />
-            <Text>
-              Edit <Code fontSize="xl">src/App.js</Code> and save to reload.
-            </Text>
-            <Link
-              color="teal.500"
-              href="https://chakra-ui.com"
-              fontSize="2xl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learn Chakra
-            </Link>
-          </VStack>
-        </Grid>
-      </Box>
-    </ChakraProvider>
+    <>
+      <ContactModal isOpen={isOpen} onClose={onClose} userId={userId} />
+      <Container maxW="600px" py={5} px={4} rounded={'lg'}>
+        <Input placeholder="Gönderen Adı" mb={3} />
+
+        <InputGroup>
+          <Tooltip hasArrow label="Email adreslerini virgül ile ayırın">
+            <Input w="full" placeholder="Email Adresleri" mb={3} />
+          </Tooltip>
+          <Button
+            leftIcon={<FcAddressBook />}
+            px={6}
+            ml={3}
+            onClick={e => onOpen()}
+            colorScheme="orange"
+          >
+            Defterden Ekle
+          </Button>
+        </InputGroup>
+
+        <Input placeholder="Konu" mb={3} />
+        <Textarea
+          mb={3}
+          defaultValue={content}
+          onChange={e => setContent(e.target.value)}
+          rows="10"
+          placeholder="Email İçeriği"
+        ></Textarea>
+      </Container>
+    </>
   );
 }
-
-export default App;
