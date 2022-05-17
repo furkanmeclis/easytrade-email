@@ -317,6 +317,27 @@ const ContactModal = props => {
       });
   };
   const GroupRowTable = ({ group }) => {
+    const saveName = name => {
+      if (name === '') return toast.warning('Boş Grup Adı Güncellenemez');
+      if (name === group.name) return;
+      db.collection('easytrade')
+        .doc('email')
+        .collection(props.userId)
+        .doc('groups')
+        .collection('list')
+        .doc(group.id)
+        .update({
+          name: name,
+        })
+        .then(e => {
+          toast.success(
+            group.name + ' Grup İsmi ' + name + ' Olarak Güncellendi'
+          );
+        })
+        .catch(e => {
+          toast.error('Güncelleme Kaydedilemedi');
+        });
+    };
     const deleteGroup = async () => {
       let o = {};
       await Promise.all(
@@ -345,7 +366,10 @@ const ContactModal = props => {
           <Td>
             <Avatar size="sm" name={group.name} />
           </Td>
-          <Td>{group.name}</Td>
+          <Td><Editable defaultValue={group.name} onSubmit={saveName}>
+              <EditablePreview />
+              <EditableInput />
+            </Editable></Td>
 
           <Td>
             <ButtonGroup size="sm" spacing={3}>
@@ -439,6 +463,38 @@ const ContactModal = props => {
                     </>
                   ) : (
                     <>
+                      <ButtonGroup mb={3} size="sm">
+                        <Button
+                          colorScheme="green"
+                          leftIcon={<FcAcceptDatabase />}
+                          onClick={async e => {
+                            let userObject = {};
+                            await Promise.all(
+                              users.map(user => {
+                                userObject[user.id] = true;
+                              })
+                            );
+                            setSelectedUsers(userObject);
+                          }}
+                        >
+                          Tümünü Seç
+                        </Button>
+                        <Button
+                          colorScheme="red"
+                          leftIcon={<FcDeleteDatabase />}
+                          onClick={async e => {
+                            let userObject = {};
+                            await Promise.all(
+                              users.map(user => {
+                                userObject[user.id] = false;
+                              })
+                            );
+                            setSelectedUsers(userObject);
+                          }}
+                        >
+                          Tümünü Kaldır
+                        </Button>
+                      </ButtonGroup>
                       <TableContainer>
                         <Table variant="simple">
                           <Thead>
@@ -493,7 +549,6 @@ const ContactModal = props => {
                               <Tr>
                                 <Th>Avatar</Th>
                                 <Th>Grup İsmi</Th>
-
                                 <Th>İşlemler</Th>
                               </Tr>
                             </Thead>
