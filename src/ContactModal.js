@@ -30,6 +30,7 @@ import {
   Flex,
   Text,
   Avatar,
+  Spinner,
 } from '@chakra-ui/react';
 import { toast } from 'react-toastify';
 import { db } from './firebase';
@@ -46,20 +47,23 @@ const ContactModal = props => {
   const [route, setRoute] = React.useState('users');
   const [users, setUsers] = React.useState([]);
   const [groups, setGroups] = React.useState([]);
+  const [loading,setLoading] = React.useState(true);
   const [createGroup, setCreateGroup] = React.useState(false);
   const [selectedUsers, setSelectedUsers] = React.useState({});
   const [selectedUsersForGroup, setSelectedUsersForGroup] = React.useState({});
   const [selectedGroups, setSelectedGroups] = React.useState({});
   const [groupName, setGroupName] = React.useState('');
-  const initDatabase = () => {
+
+  const initDatabase = async () => {
+    setLoading(true);
     db.collection('easytrade')
       .doc('email')
       .collection(props.userId)
       .doc('users')
       .collection('list')
-      .onSnapshot(snapshots => {
+      .onSnapshot(async snapshots => {
         let usersCache = [];
-        snapshots.forEach(doc => {
+        snapshots.forEach(async doc => {
           let c = doc.data();
           c.id = doc.id;
           setSelectedUsers({ ...selectedUsers, [c.id]: false });
@@ -67,6 +71,7 @@ const ContactModal = props => {
           usersCache.push(c);
         });
         setUsers(usersCache);
+        setLoading(false);
       });
     db.collection('easytrade')
       .doc('email')
@@ -81,6 +86,7 @@ const ContactModal = props => {
           groupCache.push(c);
         });
         setGroups(groupCache);
+        setLoading(false);
       });
   };
   React.useEffect(() => {
@@ -360,16 +366,20 @@ const ContactModal = props => {
           toast.error('Silme İşlemi Başarısız');
         });
     };
+
     return (
       <>
         <Tr bg={selectedGroups[group.id] === true ? 'green.100' : ''}>
           <Td>
             <Avatar size="sm" name={group.name} />
           </Td>
-          <Td><Editable defaultValue={group.name} onSubmit={saveName}>
+          <Td>{group.users.length}</Td>
+          <Td>
+            <Editable defaultValue={group.name} onSubmit={saveName}>
               <EditablePreview />
               <EditableInput />
-            </Editable></Td>
+            </Editable>
+          </Td>
 
           <Td>
             <ButtonGroup size="sm" spacing={3}>
@@ -419,14 +429,151 @@ const ContactModal = props => {
       </>
     );
   };
+  const onClose = async () => {
+    let selectedUsersGet = [];
+    await Promise.all(
+      Object.entries(selectedUsers).map(([key, value]) => {
+        if (value === true) {
+          const filterTask = users.filter(value => {
+            return value.id === key;
+          });
+          if (filterTask.length !== 0) {
+            selectedUsersGet.push(filterTask[0].email);
+          }
+        }
+      })
+    );
+    props.setEmails(selectedUsersGet);
+    props.onClose();
+  };
+  const SelectButton = () => {
+    return (
+      <>
+        <Button
+          colorScheme={
+            users.length ===
+            Object.entries(selectedUsers).filter(
+              ([key, value]) => value === true
+            ).length
+              ? 'red'
+              : 'green'
+          }
+          mb={3}
+          leftIcon={
+            users.length ===
+            Object.entries(selectedUsers).filter(
+              ([key, value]) => value === true
+            ).length ? (
+              <FcDeleteDatabase />
+            ) : (
+              <FcAcceptDatabase />
+            )
+          }
+          size="sm"
+          onClick={async e => {
+            if (
+              users.length ===
+              Object.entries(selectedUsers).filter(
+                ([key, value]) => value === true
+              ).length
+            ) {
+              let userObject = {};
+              await Promise.all(
+                users.map(user => {
+                  userObject[user.id] = false;
+                })
+              );
+              setSelectedUsers(userObject);
+            } else {
+              let userObject = {};
+              await Promise.all(
+                users.map(user => {
+                  userObject[user.id] = true;
+                })
+              );
+              setSelectedUsers(userObject);
+            }
+          }}
+        >
+          {users.length ===
+          Object.entries(selectedUsers).filter(([key, value]) => value === true)
+            .length
+            ? 'Tümünü Kaldır'
+            : 'Tümünü Seç'}
+        </Button>
+      </>
+    );
+  };
+  const SelectButtonGroupCreate = () => {
+    return (
+      <>
+        <Button
+          colorScheme={
+            users.length ===
+            Object.entries(selectedUsersForGroup).filter(
+              ([key, value]) => value === true
+            ).length
+              ? 'red'
+              : 'green'
+          }
+          mt={3}
+          leftIcon={
+            users.length ===
+            Object.entries(selectedUsersForGroup).filter(
+              ([key, value]) => value === true
+            ).length ? (
+              <FcDeleteDatabase />
+            ) : (
+              <FcAcceptDatabase />
+            )
+          }
+          size="sm"
+          onClick={async e => {
+            if (
+              users.length ===
+              Object.entries(selectedUsersForGroup).filter(
+                ([key, value]) => value === true
+              ).length
+            ) {
+              let userObject = {};
+              await Promise.all(
+                users.map(user => {
+                  userObject[user.id] = false;
+                })
+              );
+              setSelectedUsersForGroup(userObject);
+            } else {
+              let userObject = {};
+              await Promise.all(
+                users.map(user => {
+                  userObject[user.id] = true;
+                })
+              );
+              setSelectedUsersForGroup(userObject);
+            }
+          }}
+        >
+          {users.length ===
+          Object.entries(selectedUsersForGroup).filter(([key, value]) => value === true)
+            .length
+            ? 'Tümünü Kaldır'
+            : 'Tümünü Seç'}
+        </Button>
+      </>
+    );
+  };
   return (
     <>
-      <Modal isOpen={props.isOpen} onClose={props.onClose} size="full">
+      <Modal isOpen={props.isOpen} onClose={onClose} size="full">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Email Defteri</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
+            
+            {loading ? <>
+            <Flex justifyContent={"center"}><Spinner /> <Text ml="2">Yükleniyor...</Text></Flex>
+            </>:<>
             <ButtonGroup variant={'solid'} w="full">
               <Button
                 leftIcon={<FcContacts />}
@@ -463,38 +610,7 @@ const ContactModal = props => {
                     </>
                   ) : (
                     <>
-                      <ButtonGroup mb={3} size="sm">
-                        <Button
-                          colorScheme="green"
-                          leftIcon={<FcAcceptDatabase />}
-                          onClick={async e => {
-                            let userObject = {};
-                            await Promise.all(
-                              users.map(user => {
-                                userObject[user.id] = true;
-                              })
-                            );
-                            setSelectedUsers(userObject);
-                          }}
-                        >
-                          Tümünü Seç
-                        </Button>
-                        <Button
-                          colorScheme="red"
-                          leftIcon={<FcDeleteDatabase />}
-                          onClick={async e => {
-                            let userObject = {};
-                            await Promise.all(
-                              users.map(user => {
-                                userObject[user.id] = false;
-                              })
-                            );
-                            setSelectedUsers(userObject);
-                          }}
-                        >
-                          Tümünü Kaldır
-                        </Button>
-                      </ButtonGroup>
+                      <SelectButton />
                       <TableContainer>
                         <Table variant="simple">
                           <Thead>
@@ -548,6 +664,7 @@ const ContactModal = props => {
                             <Thead>
                               <Tr>
                                 <Th>Avatar</Th>
+                                <Th>Üye Sayısı</Th>
                                 <Th>Grup İsmi</Th>
                                 <Th>İşlemler</Th>
                               </Tr>
@@ -582,38 +699,7 @@ const ContactModal = props => {
                         </>
                       ) : (
                         <>
-                          <ButtonGroup my={3} size="sm">
-                            <Button
-                              colorScheme="green"
-                              leftIcon={<FcAcceptDatabase />}
-                              onClick={async e => {
-                                let groupObject = {};
-                                await Promise.all(
-                                  users.map(user => {
-                                    groupObject[user.id] = true;
-                                  })
-                                );
-                                setSelectedUsersForGroup(groupObject);
-                              }}
-                            >
-                              Tümünü Seç
-                            </Button>
-                            <Button
-                              colorScheme="red"
-                              leftIcon={<FcDeleteDatabase />}
-                              onClick={async e => {
-                                let groupObject = {};
-                                await Promise.all(
-                                  users.map(user => {
-                                    groupObject[user.id] = false;
-                                  })
-                                );
-                                setSelectedUsersForGroup(groupObject);
-                              }}
-                            >
-                              Tümünü Kaldır
-                            </Button>
-                          </ButtonGroup>
+                          <SelectButtonGroupCreate />
                           <TableContainer my={3}>
                             <Table variant="simple">
                               <Thead>
@@ -664,11 +750,11 @@ const ContactModal = props => {
                   )}
                 </>
               )}
-            </Box>
+            </Box></>}
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={props.onClose}>
-              Kapat
+            <Button colorScheme="green" mr={3} onClick={onClose}>
+              Seçilileri Ekle {/* Email var yok kontrolü sağlanacak */}
             </Button>
           </ModalFooter>
         </ModalContent>
