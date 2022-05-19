@@ -25,19 +25,28 @@ import ContactModal from './ContactModal';
 export default function App({ userId }) {
   const [content, setContent] = React.useState('');
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [designData,setDesignData] = React.useState({});
   const [emails, setEmails] = React.useState([]);
   const EmailContent = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [loading, setLoading] = React.useState(true);
+    const [saving,setSaving] = React.useState(false);
     const emailEditorRef = React.useRef(null);
     const finishedLoading = () => {
       setLoading(false);
     };
-    const exportHtml = () => {
-      emailEditorRef.current.editor.exportHtml(({html}) => {
-        setContent(html)
+    const exportHtml = async () => {
+      setSaving(true)
+      await emailEditorRef.current.editor.exportHtml(({design,html}) => {
+        setContent(html);
+        setDesignData(design)
+        console.log(design);
+        console.log(html);
       });
       onClose();
+    }
+    const onLoad = () => {
+      emailEditorRef.current.editor.loadDesign(designData);
     }
     return (
       <>
@@ -56,13 +65,12 @@ export default function App({ userId }) {
               </>
             )}
             <ModalBody>
-              <Box hidden={!loading}>
+              <Box hidden={!loading} px={3}>
                 <Flex
                   justifyContent="center"
                   alignItems="center"
                   w="full"
                   h="full"
-                  mx={3}
                 >
                   <Spinner />
                   <Text ml="2">Yükleniyor...</Text>
@@ -72,6 +80,7 @@ export default function App({ userId }) {
                 <EmailEditor
                   onReady={finishedLoading}
                   ref={emailEditorRef}
+                  onLoad={onLoad}
                   options={{
                     locale: 'tr-TR',
                   }}
